@@ -1,0 +1,158 @@
+//
+//  HomeViewController.swift
+//  TesteiOSv2
+//
+//  Created by Nishu Nishanta on 21/12/19.
+//  Copyright (c) 2019 Nishu Nishanta. All rights reserved.
+//
+
+import UIKit
+
+protocol HomeDisplayLogic: class
+{
+    func displayUserInfo(viewModel: Home.GetUserInfo.ViewModel)
+    func displayHomeData(viewModel: Home.FetchRegisters.ViewModel)
+}
+
+class HomeViewController: UIViewController, HomeDisplayLogic
+{
+    
+    @IBOutlet weak var registersTableView: UITableView!
+       
+       @IBOutlet weak var userNameTextField: UILabel!
+       @IBOutlet weak var accountTextField: UILabel!
+       @IBOutlet weak var balanceTextField: UILabel!
+       
+  var interactor: HomeBusinessLogic?
+  var router: (NSObjectProtocol & HomeRoutingLogic & HomeDataPassing)?
+
+  var userId = ""
+    
+  // MARK: Object lifecycle Methods
+  
+  override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?)
+  {
+    super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    setup()
+  }
+  
+  required init?(coder aDecoder: NSCoder)
+  {
+    super.init(coder: aDecoder)
+    setup()
+  }
+  
+  // MARK: Setup
+  
+  private func setup()
+  {
+    let viewController = self
+    let interactor = HomeInteractor()
+    let presenter = HomePresenter()
+    let router = HomeRouter()
+    viewController.interactor = interactor
+    viewController.router = router
+    interactor.presenter = presenter
+    presenter.viewController = viewController
+    router.viewController = viewController
+    router.dataStore = interactor
+  }
+  
+  // MARK: Routing
+  
+  override func prepare(for segue: UIStoryboardSegue, sender: Any?)
+  {
+    if let scene = segue.identifier {
+      let selector = NSSelectorFromString("routeTo\(scene)WithSegue:")
+      if let router = router, router.responds(to: selector) {
+        router.perform(selector, with: segue)
+      }
+    }
+  }
+  
+  // MARK: View lifecycle Methods
+  
+    override func viewDidLoad()
+    {
+        super.viewDidLoad()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        UIApplication.shared.statusBarStyle = .lightContent
+        getUserInfo()
+        fetchRegisters()
+    }
+    
+    override var preferredStatusBarStyle : UIStatusBarStyle {
+        return .lightContent
+    }
+    
+    // MARK: Fetch registers
+    
+    var displayedRegisters = [Home.DisplayedRegister]()
+
+    func fetchRegisters()
+    {
+        let request = Home.FetchRegisters.Request(userId: self.userId)
+        interactor?.fetchRegisters(request: request)
+    }
+    
+    func getUserInfo()
+    {
+        let request = Home.GetUserInfo.Request()
+        interactor?.getUserInfo(request: request)
+    }
+    
+   
+    
+    func displayUserInfo(viewModel: Home.GetUserInfo.ViewModel)
+    {
+        let displayedUserInfo = viewModel.displayedUserInfo
+        userNameTextField.text  = displayedUserInfo.name
+        accountTextField.text   = displayedUserInfo.bankAccount
+        balanceTextField.text   = displayedUserInfo.balance
+        self.userId             = displayedUserInfo.userId!
+    }
+
+    
+    func displayHomeData(viewModel: Home.FetchRegisters.ViewModel) {
+        displayedRegisters = viewModel.displayedRegisters
+        registersTableView.reloadData()
+    }
+    
+    //MARK: Logout button action method
+    
+    @IBAction func cmdLogout(_ sender: Any) {
+        _ = self.navigationController?.popViewController(animated: false)
+    }
+}
+
+extension HomeViewController: UITableViewDataSource, UITableViewDelegate
+{
+    // MARK: Table view delegate methods
+    
+    func numberOfSections(in tableView: UITableView) -> Int
+    {
+        return 1
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int
+    {
+        return displayedRegisters.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell
+    {
+        let displayedRegister = displayedRegisters[indexPath.row]
+        var cell = tableView.dequeueReusableCell(withIdentifier: "RegisterCell") as? RegisterCell
+        if cell == nil {
+            cell = UITableViewCell(style: .default, reuseIdentifier: "RegisterCell") as? RegisterCell
+        }
+        cell!.displayedRegister = displayedRegister
+        return cell!
+    }
+    
+
+
+}

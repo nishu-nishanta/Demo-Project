@@ -1,0 +1,80 @@
+//
+//  LoginViewControllerTests.swift
+//  TesteiOSv2
+//
+//  Created by Nishu Nishanta on 13/1/20.
+//  Copyright (c) 2020 Nishu Nishanta. All rights reserved.
+//
+@testable import TesteiOSv2
+import XCTest
+
+class LoginViewControllerTests: XCTestCase
+{
+  // MARK: Subject under test
+  
+  var sut: LoginViewController!
+  var window: UIWindow!
+  
+  // MARK: Test lifecycle
+  
+  override func setUp()
+  {
+    super.setUp()
+    window = UIWindow()
+    setupLoginViewController()
+  }
+  
+  override func tearDown()
+  {
+    window = nil
+    super.tearDown()
+  }
+  
+  // MARK: Test setup
+  
+  func setupLoginViewController()
+  {
+    let bundle = Bundle.main
+    let storyboard = UIStoryboard(name: "Main", bundle: bundle)
+    sut = storyboard.instantiateViewController(withIdentifier: "LoginViewController") as! LoginViewController
+  }
+  
+  func loadView()
+  {
+    window.addSubview(sut.view)
+    RunLoop.current.run(until: Date(timeIntervalSinceNow: 10))
+  }
+  
+  // MARK: Test doubles
+  
+  class LoginBusinessLogicSpy: LoginBusinessLogic
+  {
+    var doLoginCalled = false
+    let request = Login.LoginFormFields.Request(user: "test@123.com", password: "Test@1")
+    
+    func doLogin(request: Login.LoginFormFields.Request)
+    {
+      self.doLoginCalled = true
+    }
+  }
+  
+  // MARK: Tests
+  
+  
+  func testDisplayLogin()
+  {
+    // Given
+    let successResult = true
+    let greetingMesage = "Bom dia"
+    
+    let viewModel = Login.LoginFormFields.ViewModel(success: successResult, greeting: greetingMesage)
+    
+    // When
+    loadView()
+    sut.displayLogin(viewModel: viewModel)
+    
+    // Then
+    XCTAssertTrue(successResult, "displayLogin(viewModel:) should update the message text field")
+
+  }
+}
